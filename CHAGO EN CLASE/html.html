@@ -1,44 +1,517 @@
-html = """<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Iniciar sesión</title>
+	<title>Ultimo circulo — Battle Royale 3D</title>
 	<style>
 		* { box-sizing: border-box; }
-		body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px; background: #f3f5f9; color: #182230; font-family: Arial, sans-serif; }
-		.card { width: min(100%, 400px); padding: 36px; background: white; border-radius: 16px; box-shadow: 0 12px 35px #18223018; }
-		h1 { margin: 0 0 8px; font-size: 28px; }
-		.intro { margin: 0 0 28px; color: #667085; }
-		label { display: block; margin: 18px 0 8px; font-weight: 600; }
-		input[type="email"], input[type="password"] { width: 100%; padding: 12px 14px; border: 1px solid #d0d5dd; border-radius: 8px; font: inherit; }
-		input:focus { outline: 2px solid #7c9cff; border-color: #476cff; }
-		.options { display: flex; justify-content: space-between; align-items: center; margin: 18px 0 24px; font-size: 14px; }
-		.remember { display: flex; align-items: center; gap: 8px; margin: 0; font-weight: 400; }
-		a { color: #365cf5; text-decoration: none; }
-		a:hover { text-decoration: underline; }
-		button { width: 100%; padding: 13px; border: 0; border-radius: 8px; background: #365cf5; color: white; font: inherit; font-weight: 700; cursor: pointer; }
-		button:hover { background: #2748d8; }
-		.signup { margin: 24px 0 0; text-align: center; color: #667085; font-size: 14px; }
+		body { margin: 0; overflow: hidden; background: #9bc9e5; color: #fff; font-family: Arial, sans-serif; }
+		#game { display: block; width: 100vw; height: 100vh; }
+		.hud { position: fixed; z-index: 2; pointer-events: none; text-shadow: 0 2px 4px #000b; }
+		.top-left { top: 16px; left: 16px; display: grid; gap: 8px; width: 195px; }
+		.brand { color: #ffe26e; font-size: 12px; font-weight: 900; letter-spacing: .17em; }
+		.meter, .pill, .weapon, .controls { border: 1px solid #ffffff45; border-radius: 9px; background: #101820c9; }
+		.meter { padding: 8px 10px; }
+		.meter-label { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 11px; font-weight: 800; }
+		.bar { height: 8px; overflow: hidden; border-radius: 8px; background: #ffffff35; }
+		.fill { width: 100%; height: 100%; border-radius: inherit; transition: width .15s; }
+		#health-fill { background: #ff5c58; }
+		#shield-fill { background: #48c8ff; }
+		.top-right { top: 16px; right: 16px; display: grid; justify-items: end; gap: 7px; }
+		.pill { padding: 8px 12px; font-size: 12px; font-weight: 800; }
+		#storm { color: #ffc17e; }
+		#alive { color: #baff9c; }
+		#minimap { width: 140px; height: 105px; border: 2px solid #ffffffbb; border-radius: 8px; background: #263a37; }
+		.bottom-left { left: 16px; bottom: 16px; }
+		.controls { max-width: min(430px, calc(100vw - 32px)); padding: 9px 12px; color: #e8edf0; font-size: 11px; line-height: 1.8; }
+		.key { display: inline-block; min-width: 20px; padding: 0 4px; border: 1px solid #ffffff60; border-radius: 4px; background: #ffffff18; text-align: center; font-weight: 800; }
+		.bottom-right { right: 16px; bottom: 16px; display: grid; justify-items: end; gap: 7px; }
+		.weapon { padding: 8px 12px; text-align: right; }
+		.weapon-name { color: #ffd96c; font-size: 10px; font-weight: 800; }
+		.ammo { margin-top: 2px; font-size: 20px; font-weight: 900; }
+		#build-button { pointer-events: auto; padding: 7px 11px; border: 1px solid #f0c56a88; border-radius: 8px; background: #171d23df; color: #ffe08c; cursor: pointer; font-weight: 800; }
+		.toast { position: fixed; z-index: 3; top: 20%; left: 50%; transform: translateX(-50%); padding: 10px 16px; border: 1px solid #ffffff40; border-radius: 9px; background: #101820e8; font-weight: 800; text-align: center; opacity: 0; transition: opacity .2s; pointer-events: none; }
+		.toast.show { opacity: 1; }
+		.crosshair { position: fixed; top: 50%; left: 50%; z-index: 1; width: 18px; height: 18px; transform: translate(-50%, -50%); pointer-events: none; }
+		.crosshair::before, .crosshair::after { position: absolute; content: ""; background: #fff; box-shadow: 0 1px 3px #000; }
+		.crosshair::before { top: 8px; left: 0; width: 18px; height: 2px; }
+		.crosshair::after { top: 0; left: 8px; width: 2px; height: 18px; }
+		.overlay { position: fixed; z-index: 5; inset: 0; display: grid; place-items: center; padding: 18px; background: #10182088; }
+		.overlay.hidden { display: none; }
+		.dialog { width: min(100%, 500px); padding: 28px; border: 1px solid #ffffff50; border-radius: 17px; background: linear-gradient(145deg, #263849f5, #142321f7); box-shadow: 0 24px 90px #0009; text-align: center; }
+		.kicker { color: #ffe26e; font-size: 11px; font-weight: 900; letter-spacing: .2em; }
+		h1 { margin: 8px 0; font-size: clamp(34px, 8vw, 56px); line-height: .98; text-transform: uppercase; }
+		.dialog p { color: #e1e7e8; font-size: 14px; line-height: 1.55; }
+		#start-button { margin-top: 10px; padding: 13px 26px; border: 0; border-radius: 9px; background: #f6c847; color: #263022; cursor: pointer; font-size: 16px; font-weight: 900; }
+		#start-button:hover { background: #ffdd69; }
+		@media (max-width: 560px) {
+			.top-left { top: 9px; left: 9px; width: 150px; gap: 5px; }
+			.top-right { top: 9px; right: 9px; gap: 5px; }
+			#minimap { width: 104px; height: 78px; }
+			.pill { padding: 6px 8px; font-size: 10px; }
+			.bottom-left { left: 9px; bottom: 9px; }
+			.bottom-right { right: 9px; bottom: 9px; }
+			.controls { max-width: 200px; font-size: 9px; }
+			.weapon { padding: 6px 9px; }
+			.ammo { font-size: 17px; }
+		}
 	</style>
 </head>
 <body>
-	<main class="card">
-		<h1>Bienvenido</h1>
-		<p class="intro">Inicia sesión en tu cuenta</p>
-		<form action="#" method="post">
-			<label for="email">Correo electrónico</label>
-			<input id="email" name="email" type="email" placeholder="tu@correo.com" autocomplete="email" required>
-			<label for="password">Contraseña</label>
-			<input id="password" name="password" type="password" placeholder="Tu contraseña" autocomplete="current-password" required>
-			<div class="options">
-				<label class="remember"><input type="checkbox" name="remember"> Recuérdame</label>
-				<a href="#">¿Olvidaste tu contraseña?</a>
-			</div>
-			<button type="submit">Iniciar sesión</button>
-		</form>
-		<p class="signup">¿No tienes cuenta? <a href="#">Regístrate</a></p>
-	</main>
+	<canvas id="game" aria-label="Juego battle royale en 3D"></canvas>
+	<div class="crosshair" aria-hidden="true"></div>
+	<div class="hud top-left">
+		<div class="brand">ULTIMO CIRCULO · 3D</div>
+		<div class="meter"><div class="meter-label"><span>VIDA</span><span id="health-text">100</span></div><div class="bar"><div class="fill" id="health-fill"></div></div></div>
+		<div class="meter"><div class="meter-label"><span>ESCUDO</span><span id="shield-text">50</span></div><div class="bar"><div class="fill" id="shield-fill"></div></div></div>
+		<div class="pill">ELIMINACIONES: <span id="kills">0</span></div>
+	</div>
+	<div class="hud top-right">
+		<div class="pill" id="storm">ZONA SEGURA</div>
+		<div class="pill" id="alive">JUGADORES: 12</div>
+		<canvas id="minimap" width="280" height="210" aria-label="Minimapa"></canvas>
+	</div>
+	<div class="hud bottom-left">
+		<div class="controls"><span class="key">WASD</span> moverte · <span class="key">RATON</span> mirar/disparar<br><span class="key">R</span> recargar · <span class="key">Q</span> muro · <span class="key">E</span> curarte · <span class="key">ESC</span> soltar raton</div>
+	</div>
+	<div class="hud bottom-right">
+		<div class="weapon"><div class="weapon-name">RIFLE DE ASALTO</div><div class="ammo"><span id="ammo">30</span> <span style="color:#aab8bc;font-size:14px">/ <span id="reserve">120</span></span></div></div>
+		<button id="build-button" type="button">Q · MURO (10)</button>
+	</div>
+	<div class="toast" id="toast" role="status" aria-live="polite"></div>
+	<div class="overlay" id="overlay">
+		<div class="dialog">
+			<div class="kicker">BATALLA CAMPAL · VISTA 3D</div>
+			<h1 id="overlay-title">¡Solo queda uno!</h1>
+			<p id="overlay-copy">Entra al campo, recoge suministros, elimina rivales y mantente dentro de la zona segura. ¡Sé el último en pie!</p>
+			<p><strong>WASD</strong> moverte · <strong>Ratón</strong> mirar y disparar · <strong>Q</strong> construir · <strong>E</strong> curarte</p>
+			<button id="start-button" type="button">JUGAR</button>
+		</div>
+	</div>
+	<script>
+		"use strict";
+		const canvas = document.getElementById("game");
+		const gl = canvas.getContext("webgl", { antialias: true, alpha: false });
+		const minimap = document.getElementById("minimap").getContext("2d");
+		if (!gl) {
+			document.getElementById("overlay-copy").textContent = "Tu navegador no tiene WebGL activado, necesario para esta versión 3D. Prueba con otro navegador o activa la aceleración por hardware.";
+			document.getElementById("start-button").disabled = true;
+		}
+
+		const vertexShader = `
+			attribute vec3 position;
+			uniform mat4 model;
+			uniform mat4 viewProjection;
+			void main() { gl_Position = viewProjection * model * vec4(position, 1.0); }
+		`;
+		const fragmentShader = `
+			precision mediump float;
+			uniform vec4 tint;
+			void main() { gl_FragColor = tint; }
+		`;
+		const world = { size: 90 };
+		const player = { x: 0, z: 0, yaw: 0, health: 100, shield: 50, ammo: 30, reserve: 120, wood: 50, medkits: 2, kills: 0, cooldown: 0, reloading: false };
+		const storm = { radius: 60, nextRadius: 43, timer: 45, phase: 0 };
+		const bots = [];
+		const trees = [];
+		const rocks = [];
+		const pickups = [];
+		const walls = [];
+		const bullets = [];
+		const held = new Set();
+		const camera = { eye: [0, 5, 8], target: [0, 1, 0], pitch: 0 };
+		const meshes = {};
+		let width = 1, height = 1, running = false, lastFrame = 0, lastHud = 0, mouseDown = false, toastTimeout;
+		const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+		const rand = (a, b) => Math.random() * (b - a) + a;
+
+		function makeShader(type, source) {
+			const shader = gl.createShader(type);
+			gl.shaderSource(shader, source);
+			gl.compileShader(shader);
+			if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(shader));
+			return shader;
+		}
+		function makeMesh(vertices) {
+			const buffer = gl.createBuffer();
+			gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+			gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+			return { buffer, count: vertices.length / 3 };
+		}
+		function cubeVertices() {
+			const faces = [
+				[-.5,-.5,.5, .5,-.5,.5, .5,.5,.5, -.5,-.5,.5, .5,.5,.5, -.5,.5,.5],
+				[.5,-.5,-.5, -.5,-.5,-.5, -.5,.5,-.5, .5,-.5,-.5, -.5,.5,-.5, .5,.5,-.5],
+				[-.5,-.5,-.5, -.5,-.5,.5, -.5,.5,.5, -.5,-.5,-.5, -.5,.5,.5, -.5,.5,-.5],
+				[.5,-.5,.5, .5,-.5,-.5, .5,.5,-.5, .5,-.5,.5, .5,.5,-.5, .5,.5,.5],
+				[-.5,.5,.5, .5,.5,.5, .5,.5,-.5, -.5,.5,.5, .5,.5,-.5, -.5,.5,-.5],
+				[-.5,-.5,-.5, .5,-.5,-.5, .5,-.5,.5, -.5,-.5,-.5, .5,-.5,.5, -.5,-.5,.5]
+			];
+			return faces.flat();
+		}
+		function sphereVertices(segments = 12, rings = 8) {
+			const output = [];
+			for (let y = 0; y < rings; y++) {
+				const a0 = y / rings * Math.PI, a1 = (y + 1) / rings * Math.PI;
+				for (let x = 0; x < segments; x++) {
+					const b0 = x / segments * Math.PI * 2, b1 = (x + 1) / segments * Math.PI * 2;
+					const point = (a, b) => [Math.sin(a) * Math.cos(b), Math.cos(a), Math.sin(a) * Math.sin(b)];
+					const p00 = point(a0, b0), p01 = point(a0, b1), p10 = point(a1, b0), p11 = point(a1, b1);
+					output.push(...p00, ...p10, ...p01, ...p01, ...p10, ...p11);
+				}
+			}
+			return output;
+		}
+		function lineVertices(points) {
+			const output = [];
+			for (let i = 0; i < points.length; i++) {
+				const next = (i + 1) % points.length;
+				output.push(...points[i], ...points[next]);
+			}
+			return output;
+		}
+		function setupGL() {
+			if (!gl) return;
+			const program = gl.createProgram();
+			gl.attachShader(program, makeShader(gl.VERTEX_SHADER, vertexShader));
+			gl.attachShader(program, makeShader(gl.FRAGMENT_SHADER, fragmentShader));
+			gl.linkProgram(program);
+			if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(program));
+			gl.useProgram(program);
+			program.position = gl.getAttribLocation(program, "position");
+			program.model = gl.getUniformLocation(program, "model");
+			program.viewProjection = gl.getUniformLocation(program, "viewProjection");
+			program.tint = gl.getUniformLocation(program, "tint");
+			gl.enable(gl.DEPTH_TEST);
+			gl.enable(gl.CULL_FACE);
+			gl.cullFace(gl.BACK);
+			gl.clearColor(.62, .78, .87, 1);
+			gl.program = program;
+			meshes.cube = makeMesh(cubeVertices());
+			meshes.sphere = makeMesh(sphereVertices());
+			meshes.ring = makeMesh(lineVertices(Array.from({ length: 128 }, (_, i) => [Math.cos(i / 128 * Math.PI * 2), 0, Math.sin(i / 128 * Math.PI * 2)])));
+		}
+
+		function perspective(fov, aspect, near, far) {
+			const f = 1 / Math.tan(fov / 2), nf = 1 / (near - far);
+			return new Float32Array([f / aspect,0,0,0, 0,f,0,0, 0,0,(far + near) * nf,-1, 0,0,2 * far * near * nf,0]);
+		}
+		function lookAt(eye, target) {
+			const normalize = v => { const n = Math.hypot(...v) || 1; return v.map(x => x / n); };
+			const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+			const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+			const z = normalize([eye[0] - target[0], eye[1] - target[1], eye[2] - target[2]]);
+			const x = normalize(cross([0, 1, 0], z));
+			const y = cross(z, x);
+			return new Float32Array([
+				x[0],y[0],z[0],0, x[1],y[1],z[1],0, x[2],y[2],z[2],0,
+				-dot(x, eye),-dot(y, eye),-dot(z, eye),1
+			]);
+		}
+		function multiply(a, b) {
+			const out = new Float32Array(16);
+			for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++) {
+				out[c * 4 + r] = a[r] * b[c * 4] + a[4 + r] * b[c * 4 + 1] + a[8 + r] * b[c * 4 + 2] + a[12 + r] * b[c * 4 + 3];
+			}
+			return out;
+		}
+		function modelMatrix(x, y, z, sx, sy, sz, yaw = 0) {
+			const c = Math.cos(yaw), s = Math.sin(yaw);
+			return new Float32Array([c * sx,0,-s * sx,0, 0,sy,0,0, s * sz,0,c * sz,0, x,y,z,1]);
+		}
+		function draw(mesh, matrix, color, mode = gl.TRIANGLES) {
+			gl.bindBuffer(gl.ARRAY_BUFFER, mesh.buffer);
+			gl.vertexAttribPointer(gl.program.position, 3, gl.FLOAT, false, 0, 0);
+			gl.enableVertexAttribArray(gl.program.position);
+			gl.uniformMatrix4fv(gl.program.model, false, matrix);
+			gl.uniform4fv(gl.program.tint, color);
+			gl.drawArrays(mode, 0, mesh.count);
+		}
+		function resize() {
+			const ratio = Math.min(window.devicePixelRatio || 1, 1.7);
+			width = window.innerWidth;
+			height = window.innerHeight;
+			canvas.width = Math.floor(width * ratio);
+			canvas.height = Math.floor(height * ratio);
+			gl.viewport(0, 0, canvas.width, canvas.height);
+		}
+		window.addEventListener("resize", resize);
+		if (gl) { setupGL(); resize(); }
+
+		function toast(message) {
+			const element = document.getElementById("toast");
+			element.textContent = message;
+			element.classList.add("show");
+			clearTimeout(toastTimeout);
+			toastTimeout = setTimeout(() => element.classList.remove("show"), 1500);
+		}
+		function makeWorld() {
+			bots.length = 0; trees.length = 0; rocks.length = 0; pickups.length = 0; walls.length = 0; bullets.length = 0;
+			for (let i = 0; i < 60; i++) {
+				let x, z;
+				do { x = rand(-42, 42); z = rand(-42, 42); } while (Math.hypot(x, z) < 9);
+				trees.push({ x, z, r: rand(.7, 1.15) });
+			}
+			for (let i = 0; i < 28; i++) {
+				let x, z;
+				do { x = rand(-42, 42); z = rand(-42, 42); } while (Math.hypot(x, z) < 8);
+				rocks.push({ x, z, r: rand(.5, .9) });
+			}
+			for (let i = 0; i < 11; i++) {
+				let x, z;
+				do { x = rand(-38, 38); z = rand(-38, 38); } while (Math.hypot(x, z) < 12);
+				bots.push({ x, z, yaw: rand(0, Math.PI * 2), health: 100, shield: Math.random() < .45 ? 25 : 0, alive: true, cooldown: rand(.5, 1.5), wander: rand(0, Math.PI * 2), think: rand(1, 3), speed: rand(2, 3) });
+			}
+			const types = ["ammo", "shield", "medkit", "wood"];
+			for (let i = 0; i < 22; i++) pickups.push({ x: rand(-40, 40), z: rand(-40, 40), type: types[Math.floor(rand(0, types.length))] });
+			storm.radius = 60; storm.nextRadius = 43; storm.timer = 45; storm.phase = 0;
+		}
+		function startGame() {
+			if (!gl) return;
+			player.x = 0; player.z = 0; player.yaw = 0; camera.pitch = 0;
+			player.health = 100; player.shield = 50; player.ammo = 30; player.reserve = 120;
+			player.wood = 50; player.medkits = 2; player.kills = 0; player.cooldown = 0; player.reloading = false;
+			held.clear(); mouseDown = false;
+			makeWorld();
+			running = true;
+			lastFrame = performance.now();
+			document.getElementById("overlay").classList.add("hidden");
+			updateHud();
+			requestAnimationFrame(frame);
+			canvas.requestPointerLock();
+		}
+		function updateHud() {
+			document.getElementById("health-text").textContent = Math.ceil(player.health);
+			document.getElementById("shield-text").textContent = Math.ceil(player.shield);
+			document.getElementById("health-fill").style.width = `${player.health}%`;
+			document.getElementById("shield-fill").style.width = `${player.shield}%`;
+			document.getElementById("kills").textContent = player.kills;
+			document.getElementById("ammo").textContent = player.reloading ? "..." : player.ammo;
+			document.getElementById("reserve").textContent = player.reserve;
+			document.getElementById("alive").textContent = `JUGADORES: ${bots.filter(bot => bot.alive).length + 1}`;
+			document.getElementById("storm").textContent = storm.phase >= 4 ? "ZONA FINAL" : `ZONA SE CIERRA: ${Math.ceil(storm.timer)}s`;
+			document.getElementById("build-button").textContent = `Q · MURO (${player.wood})`;
+		}
+		function insideObstacle(x, z, radius = .45) {
+			return trees.some(item => Math.hypot(x - item.x, z - item.z) < item.r + radius) ||
+				rocks.some(item => Math.hypot(x - item.x, z - item.z) < item.r + radius) ||
+				walls.some(item => Math.abs(x - item.x) < item.sx / 2 + radius && Math.abs(z - item.z) < item.sz / 2 + radius);
+		}
+		function move(entity, dx, dz) {
+			const x = clamp(entity.x + dx, -43, 43), z = clamp(entity.z + dz, -43, 43);
+			if (!insideObstacle(x, entity.z, .4)) entity.x = x;
+			if (!insideObstacle(entity.x, z, .4)) entity.z = z;
+		}
+		function applyDamage(value) {
+			const absorbed = Math.min(player.shield, value);
+			player.shield -= absorbed;
+			player.health = Math.max(0, player.health - (value - absorbed));
+			if (player.health <= 0) finish(false);
+		}
+		function shoot(owner, yaw, isPlayer) {
+			bullets.push({ x: owner.x, z: owner.z, dx: Math.sin(yaw), dz: -Math.cos(yaw), range: 36, owner: isPlayer ? "player" : owner, damage: isPlayer ? 34 : 6 });
+		}
+		function fire() {
+			if (!running || player.cooldown > 0 || player.reloading) return;
+			if (player.ammo <= 0) { toast("Sin balas: pulsa R para recargar"); return; }
+			player.ammo--; player.cooldown = .16;
+			shoot(player, player.yaw + rand(-.025, .025), true);
+		}
+		function reload() {
+			if (!running || player.reloading || player.ammo >= 30 || player.reserve <= 0) return;
+			player.reloading = true;
+			setTimeout(() => {
+				if (!running) return;
+				const amount = Math.min(30 - player.ammo, player.reserve);
+				player.ammo += amount; player.reserve -= amount; player.reloading = false; updateHud();
+			}, 850);
+		}
+		function buildWall() {
+			if (!running) return;
+			if (player.wood < 10) { toast("Necesitas 10 de madera"); return; }
+			const x = player.x + Math.sin(player.yaw) * 2.2, z = player.z - Math.cos(player.yaw) * 2.2;
+			if (insideObstacle(x, z, 1.2)) { toast("No hay espacio para construir"); return; }
+			walls.push({ x, z, sx: 3.2, sy: 2.7, sz: .35 });
+			player.wood -= 10;
+			toast("¡Muro construido!");
+			updateHud();
+		}
+		function heal() {
+			if (!running) return;
+			if (player.medkits <= 0) { toast("No tienes botiquines"); return; }
+			if (player.health >= 100) { toast("Ya tienes toda la vida"); return; }
+			player.medkits--; player.health = Math.min(100, player.health + 42);
+			toast(`Botiquín usado · ${player.medkits} restantes`);
+			updateHud();
+		}
+
+		function updateBots(dt) {
+			for (const bot of bots) {
+				if (!bot.alive) continue;
+				if (Math.hypot(bot.x, bot.z) > storm.radius) {
+					bot.health -= 11 * dt;
+					if (bot.health <= 0) { bot.alive = false; continue; }
+				}
+				bot.cooldown -= dt; bot.think -= dt;
+				const dx = player.x - bot.x, dz = player.z - bot.z, d = Math.hypot(dx, dz);
+				if (d < 20) {
+					bot.yaw = Math.atan2(dx, -dz);
+					if (d > 12) move(bot, Math.sin(bot.yaw) * bot.speed * dt, -Math.cos(bot.yaw) * bot.speed * dt);
+					if (d < 18 && bot.cooldown <= 0) {
+						shoot(bot, bot.yaw + rand(-.2, .2), false);
+						bot.cooldown = rand(1.25, 1.9);
+					}
+				} else {
+					if (bot.think <= 0) { bot.wander = rand(0, Math.PI * 2); bot.think = rand(1.2, 3); }
+					move(bot, Math.sin(bot.wander) * bot.speed * .4 * dt, -Math.cos(bot.wander) * bot.speed * .4 * dt);
+				}
+			}
+			if (running && bots.every(bot => !bot.alive)) finish(true);
+		}
+		function updateBullets(dt) {
+			for (let i = bullets.length - 1; i >= 0; i--) {
+				const b = bullets[i], step = Math.min(48 * dt, b.range);
+				b.x += b.dx * step; b.z += b.dz * step; b.range -= step;
+				let remove = b.range <= 0 || insideObstacle(b.x, b.z, .1);
+				if (!remove && b.owner === "player") {
+					const target = bots.find(bot => bot.alive && Math.hypot(bot.x - b.x, bot.z - b.z) < .8);
+					if (target) {
+						const absorbed = Math.min(target.shield, b.damage);
+						target.shield -= absorbed; target.health -= b.damage - absorbed; remove = true;
+						if (target.health <= 0) {
+							target.alive = false; player.kills++;
+							if (Math.random() < .75) pickups.push({ x: target.x, z: target.z, type: ["ammo", "shield", "medkit"][Math.floor(rand(0, 3))] });
+						}
+					}
+				} else if (!remove && b.owner !== "player" && Math.hypot(player.x - b.x, player.z - b.z) < .75) {
+					applyDamage(b.damage); remove = true;
+				}
+				if (remove) bullets.splice(i, 1);
+			}
+		}
+		function updatePickups() {
+			for (let i = pickups.length - 1; i >= 0; i--) {
+				const item = pickups[i];
+				if (Math.hypot(player.x - item.x, player.z - item.z) > 1.4) continue;
+				if (item.type === "ammo") { player.reserve += 30; toast("+30 balas"); }
+				else if (item.type === "shield") { player.shield = Math.min(100, player.shield + 25); toast("+25 escudo"); }
+				else if (item.type === "medkit") { player.medkits++; toast("+1 botiquín"); }
+				else { player.wood += 20; toast("+20 madera"); }
+				pickups.splice(i, 1);
+			}
+		}
+		function update(dt) {
+			player.cooldown = Math.max(0, player.cooldown - dt);
+			let mx = Number(held.has("d") || held.has("arrowright")) - Number(held.has("a") || held.has("arrowleft"));
+			let mz = Number(held.has("s") || held.has("arrowdown")) - Number(held.has("w") || held.has("arrowup"));
+			const length = Math.hypot(mx, mz) || 1;
+			mx /= length; mz /= length;
+			const forwardX = Math.sin(player.yaw), forwardZ = -Math.cos(player.yaw);
+			const rightX = Math.cos(player.yaw), rightZ = Math.sin(player.yaw);
+			move(player, (forwardX * -mz + rightX * mx) * 9.5 * dt, (forwardZ * -mz + rightZ * mx) * 9.5 * dt);
+			if (mouseDown && document.pointerLockElement === canvas) fire();
+			storm.timer -= dt;
+			if (storm.timer <= 0 && storm.phase < 4) {
+				storm.phase++;
+				storm.radius = storm.nextRadius;
+				storm.nextRadius = Math.max(4, storm.nextRadius * .67);
+				storm.timer = storm.phase === 4 ? 9999 : 36;
+				toast(storm.phase === 4 ? "¡Zona final!" : "¡La zona segura se reduce!");
+			}
+			if (Math.hypot(player.x, player.z) > storm.radius) applyDamage(2.5 * dt);
+			updateBots(dt);
+			updateBullets(dt);
+			updatePickups();
+			if (performance.now() - lastHud > 180) { updateHud(); lastHud = performance.now(); }
+		}
+
+		function prepareCamera() {
+			const forwardX = Math.sin(player.yaw), forwardZ = -Math.cos(player.yaw);
+			camera.eye = [player.x - forwardX * 8, 4.8 + camera.pitch, player.z - forwardZ * 8];
+			camera.target = [player.x + forwardX * 2, 1.35 + camera.pitch * .25, player.z + forwardZ * 2];
+			const projection = perspective(Math.PI / 3, width / Math.max(1, height), .1, 160);
+			gl.uniformMatrix4fv(gl.program.viewProjection, false, multiply(projection, lookAt(camera.eye, camera.target)));
+		}
+		function drawCharacter(x, z, yaw, isPlayer, health = 100) {
+			const bodyColor = isPlayer ? [.08, .61, .84, 1] : [.83, .25, .18, 1];
+			draw(meshes.cube, modelMatrix(x, .95, z, .82, 1.15, .58, yaw), bodyColor);
+			draw(meshes.sphere, modelMatrix(x, 1.78, z, .52, .52, .52), isPlayer ? [.66, .91, 1, 1] : [1, .72, .46, 1]);
+			draw(meshes.cube, modelMatrix(x + Math.sin(yaw) * .68, 1.2, z - Math.cos(yaw) * .68, .95, .16, .18, yaw), [.13, .15, .16, 1]);
+			if (!isPlayer && health < 100) draw(meshes.cube, modelMatrix(x, 2.15, z, .9 * health / 100, .07, .08), [1, .1, .1, 1]);
+		}
+		function renderWorld() {
+			gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+			prepareCamera();
+			draw(meshes.cube, modelMatrix(0, -.38, 0, 90, .7, 90), [.38, .58, .26, 1]);
+			draw(meshes.cube, modelMatrix(0, .01, 0, 5, .025, 90), [.62, .57, .4, 1]);
+			draw(meshes.cube, modelMatrix(0, .012, 0, 90, .025, 5), [.62, .57, .4, 1]);
+			draw(meshes.ring, modelMatrix(0, .04, 0, storm.radius * 2, 1, storm.radius * 2), [.72, .4, 1, 1], gl.LINES);
+			for (const tree of trees) {
+				draw(meshes.cube, modelMatrix(tree.x, .8, tree.z, .28, 1.6, .28), [.36, .22, .1, 1]);
+				draw(meshes.sphere, modelMatrix(tree.x, 2.35, tree.z, tree.r * 2, tree.r * 2.2, tree.r * 2), [.12, .42, .21, 1]);
+			}
+			for (const rock of rocks) draw(meshes.sphere, modelMatrix(rock.x, rock.r * .55, rock.z, rock.r * 1.8, rock.r * 1.1, rock.r * 1.5), [.43, .48, .43, 1]);
+			for (const wall of walls) draw(meshes.cube, modelMatrix(wall.x, wall.sy / 2, wall.z, wall.sx, wall.sy, wall.sz), [.56, .35, .16, 1]);
+			const colors = { ammo: [1, .8, .16, 1], shield: [.1, .7, 1, 1], medkit: [1, .25, .22, 1], wood: [.66, .4, .18, 1] };
+			for (const item of pickups) draw(meshes.cube, modelMatrix(item.x, .5 + Math.sin(performance.now() / 350 + item.x) * .12, item.z, .65, .65, .65), colors[item.type]);
+			for (const bot of bots) if (bot.alive) drawCharacter(bot.x, bot.z, bot.yaw, false, bot.health);
+			drawCharacter(player.x, player.z, player.yaw, true);
+			for (const bullet of bullets) draw(meshes.sphere, modelMatrix(bullet.x, 1.2, bullet.z, .15, .15, .15), bullet.owner === "player" ? [1, .91, .37, 1] : [1, .34, .21, 1]);
+			renderMinimap();
+		}
+		function renderMinimap() {
+			const w = 280, h = 210, scale = w / 90;
+			minimap.fillStyle = "#668a4b"; minimap.fillRect(0, 0, w, h);
+			minimap.fillStyle = "#a89c72"; minimap.fillRect(w / 2 - 4, 0, 8, h); minimap.fillRect(0, h / 2 - 4, w, 8);
+			minimap.strokeStyle = "#bfa9ff"; minimap.lineWidth = 2; minimap.beginPath(); minimap.arc(w / 2, h / 2, storm.radius * scale, 0, Math.PI * 2); minimap.stroke();
+			for (const bot of bots) if (bot.alive) { minimap.fillStyle = "#ff6759"; minimap.fillRect((bot.x + 45) * scale - 2, (bot.z + 45) * scale - 2, 4, 4); }
+			minimap.fillStyle = "#5de2ff"; minimap.beginPath(); minimap.arc((player.x + 45) * scale, (player.z + 45) * scale, 4, 0, Math.PI * 2); minimap.fill();
+		}
+		function frame(now) {
+			if (!running) return;
+			const dt = Math.min((now - lastFrame) / 1000, .04);
+			lastFrame = now;
+			update(dt);
+			renderWorld();
+			if (running) requestAnimationFrame(frame);
+		}
+		function finish(victory) {
+			if (!running) return;
+			running = false; mouseDown = false;
+			document.exitPointerLock?.();
+			document.getElementById("overlay-title").textContent = victory ? "¡Victoria campal!" : "Te han eliminado";
+			document.getElementById("overlay-copy").textContent = victory
+				? `¡Eres el último en pie! Eliminaciones: ${player.kills}.`
+				: `Quedaste en el puesto ${bots.filter(bot => bot.alive).length + 1}. Eliminaciones: ${player.kills}. ¡Inténtalo otra vez!`;
+			document.getElementById("start-button").textContent = "JUGAR DE NUEVO";
+			document.getElementById("overlay").classList.remove("hidden");
+		}
+		window.addEventListener("keydown", event => {
+			const key = event.key.toLowerCase();
+			if (["w","a","s","d","arrowup","arrowdown","arrowleft","arrowright"," "].includes(key)) event.preventDefault();
+			held.add(key);
+			if (event.repeat) return;
+			if (key === "r") reload();
+			if (key === "q") buildWall();
+			if (key === "e") heal();
+		});
+		window.addEventListener("keyup", event => held.delete(event.key.toLowerCase()));
+		window.addEventListener("blur", () => { held.clear(); mouseDown = false; });
+		document.addEventListener("mousemove", event => {
+			if (document.pointerLockElement !== canvas || !running) return;
+			player.yaw += event.movementX * .0027;
+			camera.pitch = clamp(camera.pitch + event.movementY * .008, -2.6, 3.2);
+		});
+		canvas.addEventListener("mousedown", event => {
+			if (event.button !== 0) return;
+			if (running && document.pointerLockElement !== canvas) { canvas.requestPointerLock(); return; }
+			mouseDown = true; fire();
+		});
+		window.addEventListener("mouseup", () => { mouseDown = false; });
+		canvas.addEventListener("contextmenu", event => event.preventDefault());
+		document.getElementById("build-button").addEventListener("click", buildWall);
+		document.getElementById("start-button").addEventListener("click", startGame);
+	</script>
 </body>
 </html>
-"""
