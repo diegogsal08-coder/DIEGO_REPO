@@ -1,7 +1,7 @@
-inicioCicloexterior = int(input("dame un ciclo exterior"))
-fincicloexterior = int(input("dame un fin del ciclo exterior"))
-inicioCiclointerior = int(input("dame un inicio del ciclo interior"))
-finciclointerior = int(input("dame el fin del ciclo interior"))
+inicioCicloexterior = int(input("dame un inicio del ciclo exterior: "))
+fincicloexterior = int(input("dame un fin del ciclo exterior: "))
+inicioCiclointerior = int(input("dame un inicio del ciclo interior: "))
+finciclointerior = int(input("dame el fin del ciclo interior: "))
 i = inicioCicloexterior
 while i <= fincicloexterior:
     print("T A B L A=  " + str(i))
